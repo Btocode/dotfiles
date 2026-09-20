@@ -20,6 +20,18 @@ gsettings set org.gnome.settings-daemon.plugins.color night-light-enabled true
 gsettings set org.gnome.settings-daemon.plugins.color night-light-schedule-automatic true
 gsettings set org.gnome.settings-daemon.plugins.color night-light-temperature 3400
 
+echo "==> Icons, accent, shell theme"
+# Icons themselves are installed by setup/icons-papirus-catppuccin.sh
+gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
+# 'purple' is the nearest GNOME native accent to Catppuccin mauve (#cba6f7)
+gsettings set org.gnome.desktop.interface accent-color 'purple'
+# The floating Mocha pill bar needs User Themes enabled; its schema is not on
+# the default path, so it must be set with --schemadir.
+gnome-extensions enable user-theme@gnome-shell-extensions.gcampax.github.com 2>/dev/null || true
+UT_SCHEMA="$HOME/.local/share/gnome-shell/extensions/user-theme@gnome-shell-extensions.gcampax.github.com/schemas"
+[ -d "$UT_SCHEMA" ] && gsettings --schemadir "$UT_SCHEMA" \
+  set org.gnome.shell.extensions.user-theme name 'CatppuccinBar' || true
+
 echo "==> Never show the Ubuntu dock"
 gnome-extensions disable ubuntu-dock@ubuntu.com 2>/dev/null || true
 
