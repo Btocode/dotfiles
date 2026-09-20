@@ -18,7 +18,7 @@ sudo bash setup/01-base-system.sh
 | `02-debloat-and-tools.sh` | Removes preinstalled bloat, adds drivers/codecs and the CLI toolchain, sets zsh as login shell |
 | `03-brave-browser.sh` | Removes Firefox, installs Brave from its official repo |
 | `04-utils-and-codecs.sh` | Media codecs (`ubuntu-restricted-extras`), GNOME Sushi, ImageMagick, 7zip, mpv and friends |
-| `icons-papirus-catppuccin.sh` | Papirus icons with Catppuccin Mocha folders, per-user, no sudo. Takes an accent: `mauve` (default), `blue`, `teal`, … |
+| `icons-catppuccin.sh` | Colloid (default) or Tela-circle icons, Catppuccin-matched, per-user, no sudo. `colloid` | `tela` | `both` |
 
 ## `hardware/` — IdeaPad Slim 3 15ARP10 only
 

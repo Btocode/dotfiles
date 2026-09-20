@@ -21,8 +21,8 @@ gsettings set org.gnome.settings-daemon.plugins.color night-light-schedule-autom
 gsettings set org.gnome.settings-daemon.plugins.color night-light-temperature 3400
 
 echo "==> Icons, accent, shell theme"
-# Icons themselves are installed by setup/icons-papirus-catppuccin.sh
-gsettings set org.gnome.desktop.interface icon-theme 'Papirus-Dark'
+# Icons themselves are installed by setup/icons-catppuccin.sh
+gsettings set org.gnome.desktop.interface icon-theme 'Colloid-Purple-Catppuccin-Dark'
 # 'purple' is the nearest GNOME native accent to Catppuccin mauve (#cba6f7)
 gsettings set org.gnome.desktop.interface accent-color 'purple'
 # The floating Mocha pill bar needs User Themes enabled; its schema is not on
