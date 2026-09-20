@@ -2,9 +2,9 @@
 # Drain the pages stranded in /swap.img from before zram existed.
 # swapoff forces them back into RAM (and on into zstd zram if needed);
 # swapon re-arms the file as a low-priority fallback.
-# Run:  sudo bash ~/drain-swapfile.sh
+# Run:  sudo bash setup/performance/drain-swapfile.sh
 set -euo pipefail
-[[ $EUID -eq 0 ]] || { echo "Run with sudo: sudo bash ~/drain-swapfile.sh"; exit 1; }
+[[ $EUID -eq 0 ]] || { echo "Run with sudo: sudo bash setup/performance/drain-swapfile.sh"; exit 1; }
 
 used_kb() { awk '/^\/swap.img/{print $4}' /proc/swaps; }
 USED=$(used_kb); USED=${USED:-0}

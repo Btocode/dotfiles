@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Enable zram (compressed RAM swap) on Ubuntu 26.04.
 # Sized at 50% of RAM (~6.4G compressed, holds roughly 2-3x that in real pages).
-# Written 2026-09-20. Run:  sudo bash ~/setup-zram.sh
+# Written 2026-09-20. Run:  sudo bash setup/performance/zram-enable.sh
 set -euo pipefail
-[[ $EUID -eq 0 ]] || { echo "Run with sudo: sudo bash ~/setup-zram.sh"; exit 1; }
+[[ $EUID -eq 0 ]] || { echo "Run with sudo: sudo bash setup/performance/zram-enable.sh"; exit 1; }
 
 echo "==> Installing systemd-zram-generator"
 apt-get update -qq

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Essential utilities + media codecs for Ubuntu 26.04.
-# Written 2026-09-20. Run:  sudo bash ~/setup-utils.sh
+# Written 2026-09-20. Run:  sudo bash setup/04-utils-and-codecs.sh
 set -euo pipefail
-[[ $EUID -eq 0 ]] || { echo "Run with sudo: sudo bash ~/setup-utils.sh"; exit 1; }
+[[ $EUID -eq 0 ]] || { echo "Run with sudo: sudo bash setup/04-utils-and-codecs.sh"; exit 1; }
 
 echo "==> Updating package lists"
 apt-get update -qq

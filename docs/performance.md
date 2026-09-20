@@ -62,7 +62,7 @@ into memory:
 sudo swapoff /swap.img && sudo swapon /swap.img --priority -1
 ```
 
-`setup/drain-swapfile.sh` does this with a safety check against `MemAvailable` plus free zram.
+`setup/performance/drain-swapfile.sh` does this with a safety check against `MemAvailable` plus free zram.
 
 ## Boot
 

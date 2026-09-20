@@ -18,7 +18,7 @@ a passwordless battery charge limiter, and memory tuning for a machine that only
 | `bin/` | `battery-limit`, `wallpaper`, `amd-pmc-fix-notify` → `~/.local/bin` |
 | `system/` | zram, sysctl tuning, IdeaPad udev rule, amd_pmc kernel hooks (root-owned) |
 | `gnome/` | Just Perfection dconf, the Catppuccin pill-bar shell theme, `apply.sh` |
-| `setup/` | One-shot provisioning scripts (packages, codecs, zram) |
+| `setup/` | One-shot provisioning scripts — numbered fresh-install steps, plus `hardware/` and `performance/` ([details](setup/README.md)) |
 | `docs/` | Why each non-obvious piece exists |
 
 ## Install
@@ -77,7 +77,7 @@ eza, bat, fd, ripgrep, fzf (+fzf-tab), zoxide, direnv, delta, lazygit, btop
 - Written for **Ubuntu 26.04 / GNOME 50 on Wayland**. Earlier GNOME releases move dconf paths around.
 - The `system/` and `docs/hardware.md` parts are **IdeaPad Slim 3 15ARP10 specific**. Don't
   install the udev rule or DKMS workaround on other hardware — check your own model first.
-- `setup/setup-utils.sh` installs `ubuntu-restricted-extras`, which pulls in patent-encumbered
+- `setup/04-utils-and-codecs.sh` installs `ubuntu-restricted-extras`, which pulls in patent-encumbered
   codecs. Check that this is OK where you live.
 - Wallpapers aren't vendored here; the `wallpaper` script expects them in `~/Pictures/Wallpapers`.
   The Catppuccin set came from [orangci/walls-catppuccin-mocha](https://github.com/orangci/walls-catppuccin-mocha).

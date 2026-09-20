@@ -2,9 +2,9 @@
 # Re-apply the zram config that setup-zram.sh wrote too late to take effect.
 # The apt install auto-started zram0 with Ubuntu's defaults (4G, lzo-rle);
 # this tears that down and recreates it from /etc/systemd/zram-generator.conf.
-# Run:  sudo bash ~/fix-zram.sh
+# Run:  sudo bash setup/performance/zram-reapply.sh
 set -euo pipefail
-[[ $EUID -eq 0 ]] || { echo "Run with sudo: sudo bash ~/fix-zram.sh"; exit 1; }
+[[ $EUID -eq 0 ]] || { echo "Run with sudo: sudo bash setup/performance/zram-reapply.sh"; exit 1; }
 
 DATA_KB=$(( $(zramctl --noheadings --bytes --output DATA /dev/zram0 2>/dev/null || echo 0) / 1024 ))
 AVAIL_KB=$(awk '/MemAvailable/{print $2}' /proc/meminfo)
