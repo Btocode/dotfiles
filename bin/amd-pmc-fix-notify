@@ -1,0 +1,15 @@
+#!/bin/sh
+# At login: show a desktop notification for each new amd-pmc-fix event (once per event).
+LOG="${AMD_PMC_FIX_LOG:-/var/lib/amd-pmc-fix/events.log}"
+SEEN="${XDG_STATE_HOME:-$HOME/.local/state}/amd-pmc-fix-seen"
+[ -r "$LOG" ] || exit 0
+mkdir -p "$(dirname "$SEEN")"
+seen=$(cat "$SEEN" 2>/dev/null || echo 0)
+total=$(wc -l < "$LOG")
+[ "$total" -gt "$seen" ] || exit 0
+tail -n +"$((seen + 1))" "$LOG" | while IFS= read -r line; do
+  msg=${line#* }
+  if [ "${1:-}" = "--print" ]; then echo "NOTIFY: $msg"
+  else notify-send -u normal -i input-keyboard "Keyboard suspend fix" "$msg"; fi
+done
+echo "$total" > "$SEEN"

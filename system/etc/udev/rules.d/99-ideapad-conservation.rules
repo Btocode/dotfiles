@@ -1,0 +1,3 @@
+# Let the desktop user toggle Lenovo IdeaPad battery conservation mode without
+# root. The attribute appears when ideapad_laptop binds, so match bind too.
+ACTION=="add|bind|change", SUBSYSTEM=="platform", KERNEL=="VPC2004:00", RUN+="/bin/chgrp @USER@ /sys$devpath/conservation_mode", RUN+="/bin/chmod 0664 /sys$devpath/conservation_mode"

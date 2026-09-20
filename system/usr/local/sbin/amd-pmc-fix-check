@@ -1,0 +1,58 @@
+#!/bin/sh
+# Removes the DKMS amd_pmc keyboard-suspend workaround once Ubuntu's own kernel
+# ships the upstream fix (its built-in amd_pmc gains the delay_suspend parameter).
+# Called from /etc/kernel/postinst.d and /etc/kernel/postrm.d. Never fails a kernel install.
+#   amd-pmc-fix-check            check all installed kernels, act
+#   amd-pmc-fix-check --dry-run  report only, change nothing
+PKG=amd_pmc
+VER=0.0.4
+TAG=amd-pmc-fix
+STATE=/var/lib/amd-pmc-fix
+DRY=0; [ "${1:-}" = "--dry-run" ] && DRY=1
+
+log() { echo "$TAG: $*"; [ $DRY -eq 1 ] || logger -t "$TAG" "$*"; }
+event() { [ $DRY -eq 1 ] && return; mkdir -p "$STATE"; echo "$(date -Is) $*" >> "$STATE/events.log"; chmod 644 "$STATE/events.log"; }
+
+command -v dkms >/dev/null 2>&1 || exit 0
+dkms status -m "$PKG" -v "$VER" 2>/dev/null | grep -q . || exit 0   # workaround not present: nothing to do
+
+dkms_on() { dkms status -m "$PKG" -v "$VER" -k "$1" 2>/dev/null | grep -q ': installed'; }
+
+ubuntu_module() { # path of Ubuntu's own amd-pmc for kernel $1 (DKMS moves it aside while installed)
+  for f in /var/lib/dkms/$PKG/original_module/"$1"/*/amd-pmc.ko* \
+           /lib/modules/"$1"/kernel/drivers/platform/x86/amd/pmc/amd-pmc.ko*; do
+    case "$f" in *.origin) continue ;; esac
+    [ -f "$f" ] && { echo "$f"; return; }
+  done
+}
+
+has_fix() { m=$(ubuntu_module "$1"); [ -n "$m" ] && modinfo -p "$m" 2>/dev/null | grep -q '^delay_suspend:'; }
+
+total=0; fixed=0
+for kdir in /lib/modules/*; do
+  k=$(basename "$kdir")
+  [ -e "/boot/vmlinuz-$k" ] || continue            # only installed kernels
+  total=$((total + 1))
+  if has_fix "$k"; then
+    fixed=$((fixed + 1))
+    if dkms_on "$k"; then
+      log "kernel $k: Ubuntu driver has the fix -> removing DKMS $PKG/$VER for this kernel"
+      [ $DRY -eq 1 ] || { dkms remove -m "$PKG" -v "$VER" -k "$k" >/dev/null 2>&1 || log "kernel $k: dkms remove failed"; }
+      event "kernel $k ships the keyboard-suspend fix; workaround removed for it (takes effect when booted into $k)"
+    else
+      log "kernel $k: Ubuntu driver has the fix, workaround not installed for it"
+    fi
+  else
+    log "kernel $k: Ubuntu driver lacks the fix -> keeping workaround"
+  fi
+done
+
+if [ $total -gt 0 ] && [ $fixed -eq $total ]; then
+  log "all $total installed kernel(s) ship the fix -> removing DKMS $PKG/$VER completely"
+  if [ $DRY -eq 0 ]; then
+    dkms remove -m "$PKG" -v "$VER" --all >/dev/null 2>&1
+    rm -rf "/usr/src/$PKG-$VER"
+    event "all installed kernels ship the fix; workaround fully uninstalled"
+  fi
+fi
+exit 0

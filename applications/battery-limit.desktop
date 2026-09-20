@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Battery Charge Limit
+Comment=Toggle Lenovo conservation mode (cap charging at ~60%)
+Exec=battery-limit toggle
+Icon=battery-good-symbolic
+Terminal=false
+Categories=Settings;
+Keywords=battery;charge;limit;conservation;lenovo;

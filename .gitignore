@@ -1,0 +1,8 @@
+# Never commit identity or secrets
+.gitconfig.local
+*.local
+*.bak
+*.swp
+
+# Machine state
+.dotfiles-backup/

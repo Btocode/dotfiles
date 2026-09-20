@@ -1,0 +1,104 @@
+# Spaceship-style prompt (https://spaceship-prompt.sh) — previous Pure style saved in starship-pure.toml.bak
+"$schema" = 'https://starship.rs/config-schema.json'
+
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_state\
+$git_status\
+$nodejs\
+$python\
+$rust\
+$golang\
+$docker_context\
+$cmd_duration\
+$line_break\
+$jobs\
+$character"""
+
+add_newline = false  # spacing handled in ~/.zshrc (no gap on first prompt)
+
+[username]
+show_always = true
+format = "[$user]($style) "
+style_user = "bold yellow"
+style_root = "bold red"
+
+[hostname]
+ssh_only = true
+format = "at [$hostname]($style) "
+style = "bold green"
+
+[directory]
+format = "in [$path]($style)[$read_only]($read_only_style) "
+style = "bold cyan"
+truncation_length = 3
+truncate_to_repo = true
+truncation_symbol = "…/"
+read_only = " 🔒"
+
+[git_branch]
+format = "on [$symbol$branch]($style) "
+symbol = " "
+style = "bold purple"
+
+[git_state]
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+style = "bold yellow"
+
+[git_status]
+format = '([\[$all_status$ahead_behind\]]($style) )'
+style = "bold red"
+conflicted = "="
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+untracked = "?"
+stashed = "$"
+modified = "!"
+staged = "+"
+renamed = "»"
+deleted = "✘"
+
+[nodejs]
+format = "via [$symbol($version)]($style) "
+symbol = " "
+style = "bold green"
+
+[python]
+format = 'via [$symbol$pyenv_prefix($version)( \($virtualenv\))]($style) '
+symbol = " "
+style = "bold yellow"
+
+[rust]
+format = "via [$symbol($version)]($style) "
+symbol = " "
+style = "bold red"
+
+[golang]
+format = "via [$symbol($version)]($style) "
+symbol = " "
+style = "bold cyan"
+
+[docker_context]
+format = "via [$symbol$context]($style) "
+symbol = " "
+style = "bold blue"
+only_with_files = true
+
+[cmd_duration]
+min_time = 2000
+format = "took [$duration]($style) "
+style = "bold yellow"
+
+[jobs]
+format = "[$symbol$number]($style) "
+symbol = "✦"
+style = "bold blue"
+
+[character]
+success_symbol = "[➜](bold green)"
+error_symbol = "[➜](bold red)"
+vimcmd_symbol = "[❮](bold green)"

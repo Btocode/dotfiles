@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Switch GNOME wallpaper between the curated Catppuccin Mocha set.
+set -euo pipefail
+WD="$HOME/Pictures/Wallpapers"
+shopt -s nullglob
+mapfile -t WALLS < <(printf '%s\n' "$WD"/*.{png,jpg,jpeg} | sort)
+((${#WALLS[@]})) || { echo "No wallpapers in $WD"; exit 1; }
+cur=$(gsettings get org.gnome.desktop.background picture-uri | tr -d "'" | sed 's|^file://||')
+
+case "${1:-list}" in
+  list|ls)
+    for i in "${!WALLS[@]}"; do
+      m=" "; [[ ${WALLS[$i]} == "$cur" ]] && m="*"
+      printf "%s %d  %s\n" "$m" "$((i+1))" "$(basename "${WALLS[$i]}")"
+    done ;;
+  next)
+    idx=0
+    for i in "${!WALLS[@]}"; do [[ ${WALLS[$i]} == "$cur" ]] && idx=$(((i+1)%${#WALLS[@]})); done
+    "$0" set "$((idx+1))" ;;
+  set)
+    n="${2:?usage: wallpaper set <number|name>}"
+    if [[ $n =~ ^[0-9]+$ ]]; then f="${WALLS[$((n-1))]}"; else f=$(printf '%s\n' "${WALLS[@]}" | grep -i -- "$n" | head -1); fi
+    [[ -f ${f:-} ]] || { echo "No match: $n"; exit 1; }
+    for s in background screensaver; do
+      gsettings set org.gnome.desktop.$s picture-uri "file://$f"
+      gsettings set org.gnome.desktop.$s picture-options zoom
+    done
+    gsettings set org.gnome.desktop.background picture-uri-dark "file://$f"
+    echo "Set: $(basename "$f")" ;;
+  *) echo "usage: wallpaper [list|next|set <number|name>]"; exit 1 ;;
+esac

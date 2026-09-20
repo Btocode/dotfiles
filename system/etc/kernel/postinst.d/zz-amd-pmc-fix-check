@@ -1,0 +1,4 @@
+#!/bin/sh
+# Auto-remove amd_pmc DKMS workaround when Ubuntu's kernel ships the fix. Never blocks kernel changes.
+/usr/local/sbin/amd-pmc-fix-check || true
+exit 0

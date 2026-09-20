@@ -1,0 +1,40 @@
+#!/bin/sh
+# Lenovo IdeaPad battery conservation mode — caps charging at ~60%.
+# This is the Linux equivalent of Vantage's "Conservation Mode".
+# The value is stored in the embedded controller, so it survives reboots
+# and even a reinstall; you only ever set it once.
+#
+#   battery-limit           toggle
+#   battery-limit on|off    set explicitly
+#   battery-limit status    print current state
+
+NODE=/sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode
+
+[ -e "$NODE" ] || { echo "battery-limit: $NODE not found (is ideapad_laptop loaded?)" >&2; exit 1; }
+
+cur=$(cat "$NODE")
+
+case "${1:-toggle}" in
+    on|1)     new=1 ;;
+    off|0)    new=0 ;;
+    toggle|"") [ "$cur" = 1 ] && new=0 || new=1 ;;
+    status)   [ "$cur" = 1 ] && echo "on  (charge capped at ~60%)" || echo "off (charges to 100%)"; exit 0 ;;
+    *)        echo "usage: battery-limit [on|off|toggle|status]" >&2; exit 2 ;;
+esac
+
+if ! echo "$new" > "$NODE" 2>/dev/null; then
+    echo "battery-limit: cannot write $NODE — is the udev rule installed?" >&2
+    exit 1
+fi
+
+if [ "$new" = 1 ]; then
+    msg="Charge limit on — stops at ~60%"
+else
+    msg="Charge limit off — charges to 100%"
+fi
+echo "$msg"
+
+# Only notify when there's a desktop session (i.e. launched from the app grid).
+[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] && command -v notify-send >/dev/null && \
+    notify-send -a "Battery" -i battery-good-symbolic "Battery" "$msg"
+exit 0
