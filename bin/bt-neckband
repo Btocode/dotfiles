@@ -1,0 +1,153 @@
+#!/bin/sh
+# CMF Neckband Pro — pair over Bluetooth Classic so A2DP audio actually works.
+#
+# Why this exists: the neckband advertises on LE, so anything that discovers it
+# normally (GNOME Settings, `bluetoothctl scan on`) pairs over LE. The BR/EDR key
+# is then only derived locally via CTKD, and the neckband never persists its half —
+# so the first classic connect succeeds and every later one dies with
+# `br-connection-key-missing` + "Connection terminated due to authentication failure".
+# That looks exactly like a device that drops its connection a second after pairing.
+#
+# The fix is to pair over BR/EDR natively. Its classic side is connectable but NOT
+# discoverable, so no BR/EDR device object ever appears to pair against — but SDP
+# runs on an unencrypted channel, so `sdptool browse` opens a classic ACL link with
+# no key and no pairing mode, and bluetoothd then creates that object at the public
+# address. A plain `pair` on it does real classic SSP, which the device DOES store.
+#
+#   bt-neckband pair       full classic re-pair (use when auth keeps failing)
+#   bt-neckband connect    connect an existing classic bond
+#   bt-neckband status     show bond/link/sink state
+#
+# Tell you are on the wrong (LE) path: a rotating random address, the name
+# "Neckband Pro", and `LE.Paired: yes`. Right path: the public address below, the
+# name "CMF Neckband Pro", and only BREDR.* properties.
+
+MAC="${BT_NECKBAND_MAC:-2C:BE:EE:32:2B:DB}"
+TMP="${XDG_RUNTIME_DIR:-/tmp}/bt-neckband.$$"
+
+for t in bluetoothctl sdptool; do
+    command -v "$t" >/dev/null || { echo "bt-neckband: $t not found (install bluez)" >&2; exit 1; }
+done
+
+cleanup() {
+    [ -n "$KEEP" ] && kill "$KEEP" 2>/dev/null
+    [ -n "$BTPID" ] && kill "$BTPID" 2>/dev/null
+    rm -rf "$TMP"
+}
+trap cleanup EXIT INT TERM
+mkdir -p "$TMP"
+KEEP=""; BTPID=""
+
+strip() { sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' -e 's/\r/\n/g' "$1"; }
+
+# Set the bluez sink as the default output, if one exists.
+set_default_sink() {
+    command -v wpctl >/dev/null || return 0
+    id=$(wpctl status 2>/dev/null \
+         | grep -oE '[0-9]+\. bluez_output\.[^ ]*' | grep -oE '^[0-9]+' | head -1)
+    [ -n "$id" ] && wpctl set-default "$id" 2>/dev/null \
+        && echo "  default output -> CMF Neckband Pro"
+}
+
+do_connect() {
+    echo "Connecting $MAC ..."
+    { echo "trust $MAC"; sleep 2; echo "connect $MAC"; sleep 20; echo "quit"; } \
+        | bluetoothctl > "$TMP/conn.log" 2>&1
+    if strip "$TMP/conn.log" | grep -q "Connection successful"; then
+        echo "  connected."
+        set_default_sink
+        return 0
+    fi
+    echo "  FAILED:"
+    strip "$TMP/conn.log" | grep -iE 'Failed|Reason' | sed 's/^/    /' | tail -4
+    strip "$TMP/conn.log" | grep -q 'key-missing' \
+        && echo "    -> stale/LE-derived key. Run: bt-neckband pair"
+    return 1
+}
+
+case "${1:-status}" in
+pair)
+    # 1. An LE/CTKD-derived bond poisons every later classic connect. Drop it.
+    echo "Removing any existing bond ..."
+    { echo "remove $MAC"; sleep 2; echo "quit"; } | bluetoothctl >/dev/null 2>&1
+
+    # 2. Force a classic ACL link; this is what creates the BR/EDR device object.
+    echo "Opening a classic link via SDP (no pairing mode needed) ..."
+    if ! sdptool browse "$MAC" > "$TMP/sdp.log" 2>&1; then
+        echo "  cannot reach $MAC over BR/EDR." >&2
+        echo "  Power the neckband on, keep it near, and make sure it is not" >&2
+        echo "  already connected to a phone (classic headsets serve one host)." >&2
+        exit 1
+    fi
+    grep -q '0x110b' "$TMP/sdp.log" \
+        && echo "  Audio Sink (0x110b) present" \
+        || echo "  warning: no Audio Sink in SDP records"
+
+    if ! bluetoothctl devices 2>/dev/null | grep -q "$MAC"; then
+        echo "  no BR/EDR device object appeared — aborting." >&2
+        exit 1
+    fi
+    echo "  device object created at the public address"
+
+    # 3. Native classic SSP pairing. The agent prompt needs a literal "yes", and the
+    #    ACL link has to stay warm, so keep browsing SDP while we pair.
+    echo "Pairing over BR/EDR ..."
+    mkfifo "$TMP/fifo"
+    bluetoothctl < "$TMP/fifo" > "$TMP/pair.log" 2>&1 &
+    BTPID=$!
+    exec 3> "$TMP/fifo"
+    sleep 2
+    for c in "power on" "pairable on" "agent on" "default-agent"; do
+        echo "$c" >&3; sleep 1
+    done
+    ( while : ; do sdptool browse "$MAC" >/dev/null 2>&1; sleep 4; done ) &
+    KEEP=$!
+    echo "pair $MAC" >&3
+    i=0
+    while [ "$i" -lt 16 ]; do
+        sleep 2
+        echo "yes" >&3
+        strip "$TMP/pair.log" | grep -q "Pairing successful" && break
+        i=$((i + 1))
+    done
+    kill "$KEEP" 2>/dev/null; KEEP=""
+    echo "quit" >&3
+    exec 3>&-
+    sleep 2
+    kill "$BTPID" 2>/dev/null; BTPID=""
+
+    if ! strip "$TMP/pair.log" | grep -q "Pairing successful"; then
+        echo "  PAIRING FAILED:" >&2
+        strip "$TMP/pair.log" | grep -iE 'Failed|Authentication' | sed 's/^/    /' | tail -4
+        exit 1
+    fi
+    # A native classic bond shows BREDR.Paired and no LE.Paired.
+    if strip "$TMP/pair.log" | grep -q 'LE .* Paired: yes'; then
+        echo "  warning: paired over LE — this bond will not survive. Retry." >&2
+    else
+        echo "  paired natively over BR/EDR."
+    fi
+    do_connect
+    ;;
+
+connect)
+    do_connect
+    ;;
+
+status)
+    echo "=== bond ==="
+    bluetoothctl info "$MAC" 2>/dev/null \
+        | grep -E 'Name|Paired|Bonded|Trusted|Connected|PreferredBearer' \
+        || { echo "  $MAC not known to BlueZ — run: bt-neckband pair"; exit 1; }
+    echo "=== audio sink ==="
+    if command -v wpctl >/dev/null; then
+        wpctl status 2>/dev/null | grep -i 'bluez_output' | sed 's/^/  /' \
+            || echo "  no bluez sink (not connected)"
+    fi
+    ;;
+
+*)
+    echo "usage: bt-neckband [pair|connect|status]" >&2
+    exit 2
+    ;;
+esac
