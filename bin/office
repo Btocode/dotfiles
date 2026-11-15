@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Reach the office PC (Tailscale "connect").
+#
+#   office --terminal    SSH shell on the office PC (same as `ssh office`)
+#   office --workspace   full desktop in Remmina over RDP (GNOME Remote Desktop)
+#   office               same as --workspace
+#
+# --workspace prepares the office PC over SSH (`ssh office`) first:
+#   - unlocks the screen if locked (GNOME 42 refuses RDP while locked)
+#   - wakes the display
+#   - sets the office desktop to 1920x1200 so it fills this 16:10 laptop 1:1
+#     (the office's own 16:9 panel shows it slightly squished)
+# Without an SSH key on the office PC this asks for the office password once
+# per run; `ssh-copy-id office` makes it silent.
+#
+# Super+Esc gives shortcuts back to this laptop; Right Ctrl also releases the
+# keyboard, Right Ctrl+F toggles fullscreen.
+# Secrets live outside this repo: ~/.config/office-rdp/ and the Remmina profile.
+set -euo pipefail
+HOST=100.84.101.63
+SIZE=1920x1200
+PROFILE="$HOME/.local/share/remmina/office-pc.remmina"
+
+usage() { sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'; }
+case "${1:---workspace}" in
+  --terminal|-t)  MODE=terminal ;;
+  --workspace|-w) MODE=workspace ;;
+  -h|--help)      usage; exit 0 ;;
+  *)              echo "unknown option: $1"; usage; exit 2 ;;
+esac
+
+tailscale ping -c 1 --timeout 3s "$HOST" >/dev/null 2>&1 \
+  || { echo "Office PC is offline in Tailscale"; exit 1; }
+
+if [ "$MODE" = terminal ]; then
+  exec ssh office
+fi
+
+[ -r "$PROFILE" ] || { echo "Missing $PROFILE"; exit 1; }
+
+echo "Preparing the office PC..."
+ssh -o ConnectTimeout=8 office "SIZE=$SIZE bash -s" <<'REMOTE'
+export DISPLAY=:0 XAUTHORITY=/run/user/$(id -u)/gdm/Xauthority
+S=$(loginctl list-sessions --no-legend | awk -v u="$USER" '$3==u && /seat0/ {print $1; exit}')
+if [ -n "$S" ] && [ "$(loginctl show-session "$S" -p LockedHint --value)" = yes ]; then
+  loginctl unlock-session "$S" && echo "  unlocked the screen"
+fi
+xset dpms force on 2>/dev/null || true
+if ! xrandr | grep -q "current ${SIZE/x/ x }"; then
+  xrandr --output eDP --mode 1920x1080 --scale-from "$SIZE" && echo "  desktop set to $SIZE"
+  sleep 2
+fi
+REMOTE
+
+# Saved Remmina profile: password stored encrypted by Remmina, opens in
+# viewport-fullscreen (viewmode=4) with the keyboard grabbed (keyboard_grab=1).
+# Floating toolbar hidden via fullscreen_toolbar_visibility=2 in remmina.pref.
+if pgrep -x remmina >/dev/null; then pkill -x remmina; sleep 2; fi  # reconnect cleanly
+nohup remmina --enable-fullscreen -c "$PROFILE" >/dev/null 2>&1 &
+disown
