@@ -46,11 +46,11 @@ temporary workaround deserves.
 
 ## Battery charge limit
 
-The EC exposes `conservation_mode`, which caps charging at roughly 60% — good for a laptop
+The EC exposes `conservation_mode`, which caps charging at roughly 80% on this unit (measured from upower history) — good for a laptop
 that lives on mains power.
 
 ```bash
-battery-limit status     # on (charge capped at ~60%) | off (charges to 100%)
+battery-limit status     # on (charge capped at ~80%) | off (charges to 100%)
 battery-limit toggle     # or: on | off
 ```
 

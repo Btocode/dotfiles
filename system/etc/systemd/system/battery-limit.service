@@ -1,0 +1,17 @@
+[Unit]
+Description=Restore Lenovo IdeaPad battery charge limit (conservation mode)
+Documentation=man:ideapad_laptop(4)
+# The EC does not reliably keep conservation mode across power loss or a deep
+# discharge, so replay the user's last chosen state on every boot.
+# @USER@ is filled in at install time (same as the ideapad udev rule).
+After=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# ideapad_laptop binds asynchronously; wait for the attribute to exist.
+ExecStartPre=/bin/sh -c 'n=/sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode; for i in $(seq 1 30); do [ -e "$n" ] && exit 0; sleep 1; done; echo "conservation_mode never appeared" >&2; exit 1'
+ExecStart=/bin/sh -c 'n=/sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode; s=/home/@USER@/.local/state/battery-limit; want=1; [ -r "$s" ] && want=$(head -c1 "$s"); case "$want" in 0|1) ;; *) want=1 ;; esac; echo "$want" > "$n"; echo "charge limit set to $want"'
+
+[Install]
+WantedBy=multi-user.target

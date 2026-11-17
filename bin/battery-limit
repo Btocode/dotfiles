@@ -1,5 +1,5 @@
 #!/bin/sh
-# Lenovo IdeaPad battery conservation mode — caps charging at ~60%.
+# Lenovo IdeaPad battery conservation mode — caps charging at ~80% (measured on this unit: peaks at 80%).
 # This is the Linux equivalent of Vantage's "Conservation Mode".
 # The value is stored in the embedded controller, so it survives reboots
 # and even a reinstall; you only ever set it once.
@@ -9,6 +9,9 @@
 #   battery-limit status    print current state
 
 NODE=/sys/bus/platform/drivers/ideapad_acpi/VPC2004:00/conservation_mode
+# Desired state, replayed at boot by battery-limit.service, because the EC
+# does NOT reliably keep conservation mode across power loss / deep discharge.
+STATE=${XDG_STATE_HOME:-$HOME/.local/state}/battery-limit
 
 [ -e "$NODE" ] || { echo "battery-limit: $NODE not found (is ideapad_laptop loaded?)" >&2; exit 1; }
 
@@ -18,7 +21,7 @@ case "${1:-toggle}" in
     on|1)     new=1 ;;
     off|0)    new=0 ;;
     toggle|"") [ "$cur" = 1 ] && new=0 || new=1 ;;
-    status)   [ "$cur" = 1 ] && echo "on  (charge capped at ~60%)" || echo "off (charges to 100%)"; exit 0 ;;
+    status)   [ "$cur" = 1 ] && echo "on  (charge capped at ~80%)" || echo "off (charges to 100%)"; exit 0 ;;
     *)        echo "usage: battery-limit [on|off|toggle|status]" >&2; exit 2 ;;
 esac
 
@@ -27,8 +30,11 @@ if ! echo "$new" > "$NODE" 2>/dev/null; then
     exit 1
 fi
 
+mkdir -p "$(dirname "$STATE")" 2>/dev/null
+printf '%s\n' "$new" > "$STATE" 2>/dev/null || true
+
 if [ "$new" = 1 ]; then
-    msg="Charge limit on — stops at ~60%"
+    msg="Charge limit on — stops at ~80%"
 else
     msg="Charge limit off — charges to 100%"
 fi
