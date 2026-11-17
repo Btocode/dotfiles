@@ -3,7 +3,7 @@
 //
 //   hideDash           no dash in the overview
 //   hideOverviewSearch no search box at the top of the overview (search lives
-//                      in the Super+A palette); typing in the overview still searches
+//                      in the Super palette); typing in the overview still searches
 //   hideQsToggles      no Airplane Mode / Dark Style tiles in Quick Settings
 //   startOnDesktop     log in to the desktop, not the overview
 //   focusOnAttention   a window asking for attention is focused directly
@@ -13,7 +13,7 @@
 //   controlDrawer      no panel at all; Super+S slides Mission Control in
 //                      from the right (controlDrawer.js), Super+V opens it on
 //                      the clipboard
-//   appDrawer          Super+A slides a command palette in from the left
+//   appDrawer          Super slides a command palette in from the left
 //                      (launcher.js): apps, Settings pages, open windows,
 //                      actions and a calculator from one search box
 
@@ -50,7 +50,7 @@ const MC_WIDTH = 460;
 const MC_SLIDE_MS = 260;
 const MC_TILE_ICON = 32;
 
-// command palette (left drawer, Super+A)
+// command palette (left drawer, Super; Super+A = window overview)
 const DRAWER_WIDTH = 420;
 const DRAWER_ICON = 32;
 const DRAWER_SLIDE_MS = 240;
@@ -315,7 +315,7 @@ export default class HudShellExtension extends Extension {
         }));
     }
 
-    // ── command palette (Super+A, left drawer) ─────────────────────────────
+    // ── command palette (Super, left drawer) ───────────────────────────────
 
     _appDrawer() {
         this._undo.push(enableLauncher({

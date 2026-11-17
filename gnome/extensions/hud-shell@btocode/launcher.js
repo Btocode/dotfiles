@@ -1,4 +1,4 @@
-// Command palette (Super+A, left drawer, design "L2").
+// Command palette (Super, left drawer, design "L2"). Super+A opens the window overview.
 //
 //   enableLauncher(opts) -> undo function
 //
@@ -10,6 +10,7 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
 import Pango from 'gi://Pango';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
@@ -452,13 +453,28 @@ export function enableLauncher(opts) {
 
     Main.overview.connectObject('showing', hide, layer);
 
-    // Super+A: take over from the overview's app grid; give it back on undo
+    // Super (GNOME's overlay key) toggles the palette instead of the overview.
+    // The overview's own handler is blocked, not removed, and unblocked on undo.
+    const display = global.display;
+    const shellOverlayId = GObject.signal_handler_find(display, {signalId: 'overlay-key'});
+    if (shellOverlayId)
+        GObject.signal_handler_block(display, shellOverlayId);
+    const overlayId = display.connect('overlay-key', () => (open ? hide() : show()));
+    // GNOME ignores Super while a popup holds the keyboard; allow it so Super
+    // also closes the palette
+    Main.wm.allowKeybinding('overlay-key',
+        Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW | Shell.ActionMode.POPUP);
+
+    // Super+A: the window overview (what Super used to open)
     const controls = Main.overview._overview._controls;
     const kb = new Gio.Settings({schema_id: 'org.gnome.shell.keybindings'});
     Main.wm.removeKeybinding('toggle-application-view');
     Main.wm.addKeybinding('toggle-application-view', kb, Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
         Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW | Shell.ActionMode.POPUP,
-        () => (open ? hide() : show()));
+        () => {
+            hide();
+            Main.overview.toggle();
+        });
 
     // headless testing only: HUD_DRAWER_TEST=<text> opens with that search
     const testQuery = GLib.getenv('HUD_DRAWER_TEST');
@@ -479,6 +495,10 @@ export function enableLauncher(opts) {
         Main.wm.addKeybinding('toggle-application-view', kb, Meta.KeyBindingFlags.IGNORE_AUTOREPEAT,
             Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW,
             controls._toggleAppsPage.bind(controls));
+        display.disconnect(overlayId);
+        if (shellOverlayId)
+            GObject.signal_handler_unblock(display, shellOverlayId);
+        Main.wm.allowKeybinding('overlay-key', Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW);
         Main.overview.disconnectObject(layer);
     });
 

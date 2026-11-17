@@ -234,7 +234,7 @@ cat <<EOF
 
 $(printf '\033[1;32m')Done.$(printf '\033[0m') Now:
   1. Log out and back in once — GNOME only loads new extensions (HUD Shell) at login.
-  2. Then try: Super+A (command palette), Super+S (Mission Control), Super+V (clipboard),
+  2. Then try: Super (command palette), Super+A (window overview), Super+S (Mission Control), Super+V (clipboard),
      and 'hud-theme ghost' / 'hud-theme cockpit'.
 EOF
 n=3

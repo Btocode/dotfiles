@@ -5,8 +5,8 @@ in two drawers that slide in on demand.
 
 | Key | What opens |
 |---|---|
-| Super | GNOME's window overview (floating windows) |
-| Super+A | **Command palette**, slides in from the left |
+| Super | **Command palette**, slides in from the left |
+| Super+A | GNOME's window overview (floating windows) |
 | Super+S | **Mission Control**, slides in from the right |
 | Super+V | Mission Control, scrolled to the clipboard search |
 
@@ -20,7 +20,7 @@ only what this desktop uses; there is no preferences window — flip entries in 
 | Feature | Effect |
 |---|---|
 | `controlDrawer` | No panel at all: it is pushed off-screen and reserves no space. Super+S opens Mission Control (`controlDrawer.js`) |
-| `appDrawer` | Super+A opens the command palette (`launcher.js`) |
+| `appDrawer` | Super opens the command palette (`launcher.js`); Super+A opens the window overview |
 | `hideDash` | No dash in the overview |
 | `hideQsToggles` | No Airplane Mode / Dark Style tiles in Quick Settings |
 | `startOnDesktop` | Log in to the desktop, not the overview |
@@ -41,7 +41,7 @@ Settings), media controls (MPRIS, only while something plays), the clipboard tim
 entries are saved to `~/.local/share/hud-shell/clipboard-pins.json` (mode 600). Anything a
 password manager flags as secret is never recorded. This replaced Clipboard Indicator.
 
-**Command palette** (left, Super+A): one search box over apps (GNOME's own app search),
+**Command palette** (left, Super): one search box over apps (GNOME's own app search),
 Settings pages, open windows, actions (lock, suspend, log out, restart, power off,
 screenshot, Do Not Disturb, night light, HUD themes) and a calculator. Empty search shows
 frequent apps and open windows. ↵ opens, Ctrl+↵ opens a new window, Tab jumps groups.

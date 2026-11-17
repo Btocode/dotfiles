@@ -58,8 +58,8 @@ What stays manual, by design:
 
 | Key | Opens |
 |---|---|
-| Super | GNOME's window overview |
-| Super+A | **Command palette** (left): apps, Settings pages, open windows, actions (lock, power, screenshot, Do Not Disturb, night light, themes), calculator |
+| Super | **Command palette** (left): apps, Settings pages, open windows, actions (lock, power, screenshot, Do Not Disturb, night light, themes), calculator |
+| Super+A | GNOME's window overview |
 | Super+S | **Mission Control** (right): clock + calendar with notification bell, network/Bluetooth/volume/battery readout (opens Quick Settings), media controls, clipboard timeline, running apps, tray icons |
 | Super+V | Mission Control, straight to the clipboard search |
 
