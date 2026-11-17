@@ -1,5 +1,9 @@
 # setup/
 
+> For a new machine, use [`../bootstrap.sh`](../bootstrap.sh) instead: it covers what the
+> desktop needs today, is safe to re-run, and skips hardware-specific parts on other laptops.
+> The scripts below are the original record of how this machine was built.
+
 One-shot provisioning scripts. These are **not** idempotent config management — each was
 written to be run once on a fresh install, in order, and is kept here as a record of how
 this machine was actually built.

@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
-# Install the root-owned pieces: zram, sysctl tuning, IdeaPad udev rule,
-# and the amd_pmc kernel hooks. Each part is opt-in.
+# Install the root-owned pieces: zram, sysctl tuning, IdeaPad battery limit
+# (udev rule + boot service), and the amd_pmc kernel hooks.
 #
-#   sudo ./install-system.sh            everything
-#   sudo ./install-system.sh zram       just one part (zram|ideapad|amdpmc)
+#   sudo ./install-system.sh            zram everywhere; the IdeaPad parts only
+#                                       on an IdeaPad Slim 3 15ARP10 (83K7)
+#   sudo ./install-system.sh zram       just one part (zram|ideapad|amdpmc|terminal)
+#   sudo ./install-system.sh --force-hardware   IdeaPad parts on any machine
 set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo "Run with sudo: sudo ./install-system.sh"; exit 1; }
 DOTS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_USER="${SUDO_USER:-$(logname 2>/dev/null || echo root)}"
 WHAT="${1:-all}"
+FORCE_HW=0; [[ $WHAT == --force-hardware ]] && { FORCE_HW=1; WHAT=all; }
+
+# The IdeaPad pieces poke EC attributes and kernel modules of one laptop model.
+is_ideapad_83k7() {
+  [[ $(cat /sys/class/dmi/id/product_name 2>/dev/null) == 83K7* ]]
+}
 
 do_zram() {
   echo "==> zram (compressed RAM swap)"
@@ -33,7 +41,25 @@ do_ideapad() {
   chmod 644 /etc/udev/rules.d/99-ideapad-conservation.rules
   udevadm control --reload-rules
   udevadm trigger --subsystem-match=platform --attr-match=kernel=VPC2004:00 2>/dev/null || true
+  # The EC can forget conservation mode after power loss; replay the user's
+  # last choice (~/.local/state/battery-limit) at every boot.
+  sed "s|@USER@|$TARGET_USER|" \
+    "$DOTS/system/etc/systemd/system/battery-limit.service" \
+    > /etc/systemd/system/battery-limit.service
+  chmod 644 /etc/systemd/system/battery-limit.service
+  systemctl daemon-reload
+  systemctl enable battery-limit.service
   echo "    toggle with: battery-limit [on|off|toggle|status]"
+}
+
+do_terminal() {
+  echo "==> Ghostty as x-terminal-emulator (older apps and scripts launch this)"
+  if [[ -x /usr/bin/ghostty ]]; then
+    update-alternatives --install /usr/bin/x-terminal-emulator x-terminal-emulator /usr/bin/ghostty 60
+    update-alternatives --set x-terminal-emulator /usr/bin/ghostty
+  else
+    echo "    ghostty not installed; skipped"
+  fi
 }
 
 do_amdpmc() {
@@ -47,10 +73,19 @@ do_amdpmc() {
 }
 
 case "$WHAT" in
-  all)     do_zram; do_ideapad; do_amdpmc ;;
+  all)
+    do_zram
+    do_terminal
+    if (( FORCE_HW )) || is_ideapad_83k7; then
+      do_ideapad; do_amdpmc
+    else
+      echo "==> Skipping IdeaPad parts: this is a '$(cat /sys/class/dmi/id/product_name 2>/dev/null)', not an 83K7"
+      echo "    (override with --force-hardware only if you know they apply)"
+    fi ;;
   zram)    do_zram ;;
   ideapad) do_ideapad ;;
   amdpmc)  do_amdpmc ;;
-  *) echo "usage: sudo ./install-system.sh [all|zram|ideapad|amdpmc]"; exit 2 ;;
+  terminal) do_terminal ;;
+  *) echo "usage: sudo ./install-system.sh [all|zram|ideapad|amdpmc|terminal]"; exit 2 ;;
 esac
 echo; echo "Done."

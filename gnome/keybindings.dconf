@@ -1,0 +1,42 @@
+# Custom shortcuts (Settings › Keyboard › Custom Shortcuts). Loaded by apply.sh with
+#   dconf load /org/gnome/settings-daemon/plugins/media-keys/ < gnome/keybindings.dconf
+# Ghostty on Super+T, Super+Return and Ctrl+Alt+T; GNOME's own terminal key is cleared.
+[/]
+control-center=['<Super>i']
+custom-keybindings=['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/ghostty/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/ghostty2/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/ghostty3/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/browser/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/files/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/code/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/taskmgr/']
+terminal=@as []
+
+[custom-keybindings/browser]
+binding='<Super>b'
+command='brave-browser'
+name='Browser (Brave)'
+
+[custom-keybindings/code]
+binding='<Super>c'
+command='code'
+name='VS Code'
+
+[custom-keybindings/files]
+binding='<Super>e'
+command='nautilus --new-window'
+name='Files'
+
+[custom-keybindings/ghostty]
+binding='<Super>t'
+command='ghostty +new-window'
+name='Terminal (Ghostty)'
+
+[custom-keybindings/ghostty2]
+binding='<Super>Return'
+command='ghostty +new-window'
+name='Terminal (Ghostty) alt'
+
+[custom-keybindings/ghostty3]
+binding='<Control><Alt>t'
+command='ghostty +new-window'
+name='Terminal (Ghostty) classic'
+
+[custom-keybindings/taskmgr]
+binding='<Control><Shift>Escape'
+command='resources'
+name='Task manager (Resources)'

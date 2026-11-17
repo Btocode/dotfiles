@@ -3,15 +3,42 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "==> HUD Shell (own extension: no bar, Super+A palette, Super+S Mission Control)"
-# Replaces Just Perfection. Needs a re-login the first time (Wayland only
-# discovers new extensions at shell startup).
+# Enable an extension now if the shell already knows it; otherwise (freshly
+# installed — Wayland only discovers extensions at login) add it to the list
+# GNOME reads at the next login.
+enable_ext() {
+  local uuid="$1"
+  gnome-extensions enable "$uuid" 2>/dev/null && return 0
+  gsettings set org.gnome.shell enabled-extensions "$(
+    gsettings get org.gnome.shell enabled-extensions | python3 -c '
+import ast, sys
+cur = sys.stdin.read().strip()
+l = [] if cur.startswith("@as") else ast.literal_eval(cur)
+if sys.argv[1] not in l:
+    l.append(sys.argv[1])
+print(l)' "$uuid")"
+}
+
+echo "==> Extensions: HUD Shell (no bar, Super+A palette, Super+S Mission Control)"
 for e in just-perfection-desktop@just-perfection Vitals@CoreCoding.com clipboard-indicator@tudmotu.com; do
   gnome-extensions disable "$e" 2>/dev/null || true   # replaced by HUD Shell
 done
-gnome-extensions enable hud-shell@btocode 2>/dev/null || \
-  gsettings set org.gnome.shell enabled-extensions \
-    "$(gsettings get org.gnome.shell enabled-extensions | sed "s/]$/, 'hud-shell@btocode']/; s/\[, /[/")"
+# GNOME's crash protection can switch every user extension off
+gsettings set org.gnome.shell disable-user-extensions false
+for e in hud-shell@btocode user-theme@gnome-shell-extensions.gcampax.github.com caffeine@patapon.info; do
+  enable_ext "$e"
+done
+# battery conservation toggle, only where that extension was installed (IdeaPad)
+[[ -d $HOME/.local/share/gnome-shell/extensions/ideapad@laurento.frittella ]] && enable_ext ideapad@laurento.frittella
+
+echo "==> Shortcuts and default terminal (Ghostty)"
+# Super+T / Super+Return / Ctrl+Alt+T → Ghostty, Super+B Brave, Super+E Files,
+# Super+C VS Code, Ctrl+Shift+Esc Resources
+grep -v '^#' "$HERE/keybindings.dconf" | dconf load /org/gnome/settings-daemon/plugins/media-keys/
+# GNOME opens terminals through xdg-terminal-exec, which reads
+# ~/.config/xdg-terminals.list (linked by install.sh)
+gsettings set org.gnome.desktop.default-applications.terminal exec 'xdg-terminal-exec'
+gsettings set org.gnome.desktop.default-applications.terminal exec-arg '--'
 
 echo "==> Input"
 gsettings set org.gnome.desktop.peripherals.keyboard delay 250
@@ -33,9 +60,6 @@ gsettings set org.gnome.desktop.interface icon-theme 'Colloid-Purple-Catppuccin-
 gsettings set org.gnome.desktop.interface cursor-theme 'catppuccin-mocha-mauve-cursors'
 # 'purple' is the nearest GNOME native accent to Catppuccin mauve (#cba6f7)
 gsettings set org.gnome.desktop.interface accent-color 'purple'
-# The HUD bar themes need User Themes enabled; its schema is not on
-# the default path, so it must be set with --schemadir.
-gnome-extensions enable user-theme@gnome-shell-extensions.gcampax.github.com 2>/dev/null || true
 # hud-theme selects the shell theme and links Files' gtk.css; it remembers
 # the last choice, so re-running apply.sh keeps the current look.
 "$HERE/../bin/hud-theme" reload || true

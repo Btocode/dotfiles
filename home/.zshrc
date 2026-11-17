@@ -76,3 +76,6 @@ _prompt_gap_skip=1
 _prompt_gap() { (( _prompt_gap_skip )) && _prompt_gap_skip=0 || print }
 precmd_functions+=(_prompt_gap)
 clear() { command clear "$@"; _prompt_gap_skip=1 }
+
+# Stripe CLI, if installed (its installer appends a hard-coded PATH line otherwise)
+[[ -d $HOME/.stripe/bin ]] && export PATH="$HOME/.stripe/bin:$PATH"

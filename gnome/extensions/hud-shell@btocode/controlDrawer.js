@@ -298,6 +298,20 @@ export function enableControlDrawer(opts) {
             });
     };
 
+    // A click outside the drawer while one of its menus (Quick Settings, a tray
+    // icon) is open only closes that menu: the menu's grab eats the click. Treat
+    // it as a click outside the drawer as well.
+    const watchMenu = menu => {
+        menu?.connectObject?.('open-state-changed', (_m, isOpen) => {
+            if (isOpen || !open)
+                return;
+            const [px] = global.get_pointer();
+            const [dx] = drawer.get_transformed_position();
+            if (px < dx)
+                hide();
+        }, opts.owner);
+    };
+
     // ── status: readout strip (opens Quick Settings) + background apps ──
     const statusTitle = sectionTitle('STATUS');
     content.add_child(statusTitle);
@@ -313,9 +327,11 @@ export function enableControlDrawer(opts) {
         Main.uiGroup.set_child_above_sibling(qs.menu.actor, null);
         qs.menu.toggle();
     };
+    watchMenu(qs?.menu);
     const strip = buildStatusStrip({onActivate: openQuickSettings});
     content.add_child(strip.actor);
     undo.push(() => {
+        qs?.menu?.disconnectObject?.(opts.owner);
         if (qs?.menu && qsOrigSource)
             qs.menu.sourceActor = qsOrigSource;
         strip.destroy();
@@ -357,6 +373,8 @@ export function enableControlDrawer(opts) {
             });
             if (button.menu?._boxPointer)
                 button.menu._boxPointer._userArrowSide = St.Side.TOP;
+            watchMenu(button.menu);
+            moved[moved.length - 1].menu = button.menu;
         }
         syncTray();
     };
@@ -387,6 +405,7 @@ export function enableControlDrawer(opts) {
         moved.length = 0;
         for (const m of alive) {
             try {
+                m.menu?.disconnectObject?.(opts.owner);
                 m.container.disconnectObject(opts.owner);
                 m.container.get_first_child()?.disconnectObject(opts.owner);
             } catch {}

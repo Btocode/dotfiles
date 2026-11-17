@@ -48,13 +48,16 @@ done
 
 if [[ -d $BACKUP ]]; then echo; echo "Replaced files were saved to: ${BACKUP/#$HOME/~}"; fi
 
+# bootstrap.sh prints its own checklist
+[[ -n ${BOOTSTRAP:-} ]] && exit 0
+
 cat <<'NOTE'
 
 Next steps:
   1. Set your git identity (kept out of the repo on purpose):
        git config --file ~/.gitconfig.local user.name  "Your Name"
        git config --file ~/.gitconfig.local user.email "you@example.com"
-  2. Root-owned pieces (zram, udev, kernel hooks):  sudo ./install-system.sh
+  2. Root-owned pieces (zram; IdeaPad fixes only on that laptop):  sudo ./install-system.sh
   3. GNOME settings:                                ./gnome/apply.sh
   4. Restart your shell:                            exec zsh
 NOTE
