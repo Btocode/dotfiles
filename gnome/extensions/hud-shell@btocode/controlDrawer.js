@@ -38,6 +38,18 @@ function sectionTitle(text) {
 
 // ── the drawer ─────────────────────────────────────────────────────────────
 
+// Keep a scroll view strictly vertical: pin the child to the viewport width
+// (so long labels ellipsize instead of widening the content) and snap any
+// horizontal scroll back to 0. hscrollbar_policy NEVER only hides the bar;
+// touchpads could still scroll sideways.
+function verticalOnly(scroll, child) {
+    scroll.connect('notify::width', () => child.set_width(scroll.width));
+    scroll.hadjustment.connect('notify::value', adj => {
+        if (adj.value !== 0)
+            adj.value = 0;
+    });
+}
+
 export function enableControlDrawer(opts) {
     const {width, slideMs, tileIcon, setStruts} = opts;
     const undo = [];
@@ -75,6 +87,7 @@ export function enableControlDrawer(opts) {
     });
     const content = new St.BoxLayout({vertical: true, style_class: 'hud-mc-content', x_expand: true});
     scroll.set_child(content);
+    verticalOnly(scroll, content);
     drawer.add_child(scroll);
 
     // ── clock + calendar ──

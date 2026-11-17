@@ -142,6 +142,18 @@ function calculate(src) {
     }
 }
 
+// Keep a scroll view strictly vertical: pin the child to the viewport width
+// (so long labels ellipsize instead of widening the content) and snap any
+// horizontal scroll back to 0. hscrollbar_policy NEVER only hides the bar;
+// touchpads could still scroll sideways.
+function verticalOnly(scroll, child) {
+    scroll.connect('notify::width', () => child.set_width(scroll.width));
+    scroll.hadjustment.connect('notify::value', adj => {
+        if (adj.value !== 0)
+            adj.value = 0;
+    });
+}
+
 export function enableLauncher(opts) {
     const {width, iconSize, slideMs, themeCmd, Meta} = opts;
     const undo = [];
@@ -197,6 +209,7 @@ export function enableLauncher(opts) {
         hscrollbar_policy: St.PolicyType.NEVER, vscrollbar_policy: St.PolicyType.AUTOMATIC, overlay_scrollbars: true,
     });
     scroll.set_child(list);
+    verticalOnly(scroll, list);
     const foot = new St.Label({text: '↵ open   ctrl+↵ new window   esc close', style_class: 'hud-pal-foot'});
     foot.clutter_text.ellipsize = Pango.EllipsizeMode.NONE;
     drawer.add_child(titleRow);
