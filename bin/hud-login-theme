@@ -61,6 +61,13 @@ build() { # build <theme> <out>
 
   [[ -f $tmp/src/gdm.css ]] || { echo "Yaru resource has no gdm.css; refusing to build" >&2; exit 1; }
   cat "$css" >> "$tmp/src/gdm.css"
+  # extra images the login CSS references as resource:///org/gnome/shell/theme/<name>
+  local asset
+  for asset in "$THEMES"/gdm-assets/*; do
+    [[ -f $asset ]] || continue
+    cp "$asset" "$tmp/src/"
+    sed -i "s|</gresource>|  <file>$(basename "$asset")</file>\n</gresource>|" "$xml"
+  done
   glib-compile-resources --sourcedir "$tmp/src" --target "$2" "$xml"
   echo "built $2 ($(du -h "$2" | cut -f1)) from $dir"
 }
