@@ -1,0 +1,10 @@
+{
+  "uuid": "hud-shell@btocode",
+  "name": "HUD Shell",
+  "description": "Personal shell: no panel; Super+A command palette and Super+S Mission Control drawers (clock, calendar, status, clipboard, apps, notifications); trimmed overview and Quick Settings.",
+  "shell-version": [
+    "50"
+  ],
+  "url": "https://github.com/Btocode/dotfiles",
+  "version": 2
+}

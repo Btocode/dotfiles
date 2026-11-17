@@ -1,0 +1,5 @@
+/* Zero-height workspace in the app grid still draws a shadow */
+.hud-shell-no-workspaces-in-app-grid .workspace-background {
+  background-color: transparent;
+  box-shadow: 0 4px 16px 4px transparent;
+}

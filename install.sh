@@ -36,8 +36,15 @@ for f in "$DOTS"/bin/*; do link "$f" "$HOME/.local/bin/$(basename "$f")"; done
 echo "==> Desktop entries"
 for f in "$DOTS"/applications/*.desktop; do link "$f" "$HOME/.local/share/applications/$(basename "$f")"; done
 
-echo "==> GNOME Shell theme"
-link "$DOTS/gnome/themes/CatppuccinBar" "$HOME/.local/share/themes/CatppuccinBar"
+echo "==> GNOME Shell themes (HUD-*; pick one with: hud-theme <name>)"
+for d in "$DOTS"/gnome/themes/HUD-*/; do
+  d="${d%/}"; link "$d" "$HOME/.local/share/themes/$(basename "$d")"
+done
+
+echo "==> GNOME Shell extensions (own)"
+for d in "$DOTS"/gnome/extensions/*/; do
+  d="${d%/}"; link "$d" "$HOME/.local/share/gnome-shell/extensions/$(basename "$d")"
+done
 
 if [[ -d $BACKUP ]]; then echo; echo "Replaced files were saved to: ${BACKUP/#$HOME/~}"; fi
 

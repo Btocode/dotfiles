@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# hud-theme — switch the desktop between the HUD looks (bar, its menus, Files).
+#
+#   hud-theme                 show the current theme and the choices
+#   hud-theme gridrunner      teal console
+#   hud-theme ghost           barely-there fade
+#   hud-theme cockpit         amber instruments (clock shows seconds)
+#   hud-theme reload          re-apply the current one (after build.py)
+#   hud-theme next            cycle to the next theme
+#
+# Themes live in ~/dotfiles/gnome/themes/HUD-*; rebuild them with
+# `python3 ~/dotfiles/gnome/themes/build.py`.
+set -euo pipefail
+
+DOTS="${DOTS:-$HOME/dotfiles}"
+THEMES="$DOTS/gnome/themes"
+STATE="$HOME/.config/hud-theme/current"
+ORDER=(gridrunner ghost cockpit)
+
+dir_for() {
+  case "$1" in
+    gridrunner|grid) echo HUD-GridRunner ;;
+    ghost)           echo HUD-Ghost ;;
+    cockpit)         echo HUD-Cockpit ;;
+    *) return 1 ;;
+  esac
+}
+
+current() { cat "$STATE" 2>/dev/null || echo gridrunner; }
+
+
+apply() {
+  local key="$1" dir
+  dir=$(dir_for "$key") || { echo "unknown theme: $key (choose: ${ORDER[*]})" >&2; exit 2; }
+  [[ -d $THEMES/$dir ]] || { echo "missing $THEMES/$dir — run build.py" >&2; exit 1; }
+
+  # shell theme: link it where User Themes looks, then select it
+  mkdir -p "$HOME/.local/share/themes"
+  ln -sfn "$THEMES/$dir" "$HOME/.local/share/themes/$dir"
+  local schema
+  schema=$(echo "$HOME"/.local/share/gnome-shell/extensions/user-theme@*/schemas)
+  gsettings --schemadir "$schema" set org.gnome.shell.extensions.user-theme name 'Default'
+  gsettings --schemadir "$schema" set org.gnome.shell.extensions.user-theme name "$dir"
+
+  # Files (GTK 4): point the user stylesheet at this theme's file
+  local gtkcss="$HOME/.config/gtk-4.0/gtk.css"
+  mkdir -p "$(dirname "$gtkcss")"
+  if [[ -e $gtkcss && ! -L $gtkcss ]]; then
+    mv "$gtkcss" "$gtkcss.bak-$(date +%Y%m%d%H%M%S)"
+    echo "backed up your own gtk.css next to it"
+  fi
+  ln -sfn "$THEMES/$dir/gtk-4.0/gtk.css" "$gtkcss"
+
+  # Cockpit's clock reads like an instrument: show seconds
+  if [[ $key == cockpit ]]; then
+    gsettings set org.gnome.desktop.interface clock-show-seconds true
+  else
+    gsettings set org.gnome.desktop.interface clock-show-seconds false
+  fi
+
+  # Wallpaper paired with the theme
+  if [[ -f $THEMES/$dir/wallpaper ]] && command -v wallpaper >/dev/null; then
+    wallpaper set "$(cat "$THEMES/$dir/wallpaper")" >/dev/null || true
+  fi
+
+  # Ghostty: point the optional include at this theme's colours, reload live
+  if [[ -f $THEMES/$dir/ghostty.conf ]]; then
+    mkdir -p "$HOME/.config/ghostty"
+    ln -sfn "$THEMES/$dir/ghostty.conf" "$HOME/.config/ghostty/hud-theme.conf"
+    gdbus call --session --dest com.mitchellh.ghostty --object-path /com/mitchellh/ghostty \
+      --method org.gtk.Actions.Activate reload-config '[]' '{}' >/dev/null 2>&1 || true
+  fi
+
+  # Chrome: copy the theme into one fixed folder that Chrome loads unpacked.
+  # Chrome reads it at startup (or on the reload arrow in chrome://extensions).
+  local chrome_dir="$HOME/.local/share/hud-theme/chrome"
+  if [[ -f $THEMES/$dir/chrome/manifest.json ]]; then
+    mkdir -p "$chrome_dir"
+    cp "$THEMES/$dir/chrome/manifest.json" "$chrome_dir/manifest.json"
+  fi
+
+  mkdir -p "$(dirname "$STATE")"
+  echo "$key" > "$STATE"
+  echo "HUD theme: $key"
+  if pgrep -x nautilus >/dev/null; then
+    echo "Files is open: close and reopen it to see the new look (or run: nautilus -q)"
+  fi
+}
+
+case "${1:-}" in
+  "")
+    cur=$(current)
+    for t in "${ORDER[@]}"; do
+      [[ $t == "$cur" ]] && echo "* $t" || echo "  $t"
+    done
+    ;;
+  reload) apply "$(current)" ;;
+  next)
+    cur=$(current); i=0
+    for idx in "${!ORDER[@]}"; do [[ ${ORDER[$idx]} == "$cur" ]] && i=$idx; done
+    apply "${ORDER[$(( (i + 1) % ${#ORDER[@]} ))]}"
+    ;;
+  -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) apply "$1" ;;
+esac

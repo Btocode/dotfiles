@@ -1,48 +1,124 @@
 # Desktop notes — GNOME 50 / Wayland
 
-The goal: no dock, nothing hovering at the top of the screen, and a single small bar at the
-bottom that gets out of the way in fullscreen.
+The goal: no dock, no bar, nothing on screen but windows. Everything a bar would show lives
+in two drawers that slide in on demand.
 
-## Bottom pill bar
+| Key | What opens |
+|---|---|
+| Super | GNOME's window overview (floating windows) |
+| Super+A | **Command palette**, slides in from the left |
+| Super+S | **Mission Control**, slides in from the right |
+| Super+V | Mission Control, scrolled to the clipboard search |
 
-[Just Perfection](https://extensions.gnome.org/extension/3843/just-perfection/) moves the
-panel and hides the dash. The relevant keys:
+## HUD Shell
 
-| Key | Value | Effect |
-|---|---|---|
-| `panel` | `true` | Show the panel at all |
-| `top-panel-position` | `1` | Move it to the bottom |
-| `dash` | `false` | No dash in the overview |
+An own extension, **HUD Shell** (`gnome/extensions/hud-shell@btocode`, linked into
+`~/.local/share/gnome-shell/extensions` by `install.sh`), replaced Just Perfection. It does
+only what this desktop uses; there is no preferences window — flip entries in the
+`FEATURES` object at the top of `extension.js`:
 
-`gnome/themes/CatppuccinBar` restyles it as a floating rounded pill — Catppuccin Mocha base
-with a mauve border, detached from the screen edge by a margin. It `@import`s Yaru's dark
-shell CSS rather than replacing it, so it only overrides `#panel` rules and keeps working
-across Ubuntu theme updates. Enable it through *User Themes* in GNOME Tweaks.
+| Feature | Effect |
+|---|---|
+| `controlDrawer` | No panel at all: it is pushed off-screen and reserves no space. Super+S opens Mission Control (`controlDrawer.js`) |
+| `appDrawer` | Super+A opens the command palette (`launcher.js`) |
+| `hideDash` | No dash in the overview |
+| `hideQsToggles` | No Airplane Mode / Dark Style tiles in Quick Settings |
+| `startOnDesktop` | Log in to the desktop, not the overview |
+| `focusOnAttention` | Windows that demand attention get focused instead of a notification |
+| `noWorkspacesInGrid` | No workspace strip above the app grid |
+| `appGrid` | Denser app grid (8×4, 64 px icons), reset to A–Z at every login |
 
-### The panel key gets reset
+GNOME Shell on Wayland only (re)loads extension code at login, so after editing the
+extension log out and back in.
 
-**Applying a Just Perfection profile preset silently rewrites `panel` to `false`**, which
-hides the bar completely and looks like the extension broke. Observed twice, most recently
-after an ordinary logout. `top-panel-position` survived both times — it's specifically
-`panel` that gets clobbered.
+**Mission Control** (right, Super+S), top to bottom: large clock with a notification bell
+(opens GNOME's notification list over the drawer), month calendar, a status readout strip
+(`statusStrip.js`: network, Bluetooth device, volume, battery; click it for GNOME's Quick
+Settings), media controls (MPRIS, only while something plays), the clipboard timeline
+(`clipboard.js`), running apps, and the background tray icons pinned to the bottom edge.
 
-Fix without logging out (Just Perfection applies dconf changes live):
+**Clipboard**: history is tracked by HUD Shell itself and kept in memory only; pinned
+entries are saved to `~/.local/share/hud-shell/clipboard-pins.json` (mode 600). Anything a
+password manager flags as secret is never recorded. This replaced Clipboard Indicator.
+
+**Command palette** (left, Super+A): one search box over apps (GNOME's own app search),
+Settings pages, open windows, actions (lock, suspend, log out, restart, power off,
+screenshot, Do Not Disturb, night light, HUD themes) and a calculator. Empty search shows
+frequent apps and open windows. ↵ opens, Ctrl+↵ opens a new window, Tab jumps groups.
+
+### Testing without logging out
+
+Run a second, invisible GNOME Shell with its own settings (so nothing touches the real
+session):
 
 ```bash
-dconf write /org/gnome/shell/extensions/just-perfection/panel true
+mkdir -p /tmp/hudtest/glib-2.0/settings   # put enabled-extensions etc. in .../keyfile
+HUD_MC_TEST=1 dbus-run-session -- env GSETTINGS_BACKEND=keyfile XDG_CONFIG_HOME=/tmp/hudtest \
+  gnome-shell --headless --virtual-monitor 1920x1080 --wayland-display hudtest-0 --no-x11
 ```
 
-When inspecting the settings, dump the whole thing — `top-panel-position` sorts near the end
-alphabetically and is easy to cut off with `head`:
+`HUD_MC_TEST=1` opens Mission Control at startup; `HUD_DRAWER_TEST=<text>` opens the
+palette with that search.
+
+### Lessons
+
+- **Never leave a moved actor unguarded.** Mission Control moves other extensions' tray
+  icons out of the panel. When one of those extensions was disabled, its icon was
+  destroyed inside the drawer, and the cleanup later re-parented the dead actor: GNOME
+  Shell segfaulted, the session ended, and GNOME's crash protection set
+  `disable-user-extensions` to true. Every moved actor now listens for `destroy`. If the
+  desktop ever comes back with no extensions, check
+  `gsettings get org.gnome.shell disable-user-extensions`.
+- St measures labels before CSS `letter-spacing` is applied, so tracked text gets
+  ellipsized even when it fits; such labels set `clutter_text.ellipsize = NONE`.
+- A child with `y_expand: true` propagates expansion to its parents: one divider widget
+  stretched the whole status strip down the drawer.
+
+### Themes: Grid Runner, Ghost, Cockpit
+
+Three complete looks, each covering both drawers, menus, notifications, OSD/Alt+Tab, the
+overview, dialogs, the lock screen, and every libadwaita app (Settings, Files, …):
+
+| Theme | Look |
+|---|---|
+| `gridrunner` | Teal console: JetBrains Mono, hairline borders, glowing clock |
+| `ghost` | Soft and rounded, Inter, mauve accents; slightly see-through Files |
+| `cockpit` | Amber instruments, clock with seconds |
+
+Each theme also carries:
+
+- **Wallpaper**: Grid Runner → `mocha-dark-forest`, Ghost → `mocha-misty-boat`, Cockpit →
+  `mocha-black-hole` (set through `bin/wallpaper`).
+- **Ghostty colours**: `HUD-*/ghostty.conf`, pulled in by `config-file = ?hud-theme.conf` at the
+  end of the Ghostty config. `hud-theme` relinks it and triggers Ghostty's `reload-config`
+  action over D-Bus (Ghostty has no reload signal; don't send it SIGUSR2).
+- **Chrome theme**: `HUD-*/chrome/manifest.json`, copied to `~/.local/share/hud-theme/chrome`.
+  Load that folder once via chrome://extensions → Developer mode → *Load unpacked*; after a
+  switch, Chrome picks the new colours up on restart (or the extension's reload arrow).
+- **Lock screen**: themed clock, user name and password field.
+
+Switch any time, live, no logout — from the command palette (type "theme") or:
 
 ```bash
-dconf dump /org/gnome/shell/extensions/just-perfection/
+hud-theme              # list, * marks the current one
+hud-theme ghost        # or gridrunner / cockpit / next / reload
 ```
 
-### Fullscreen hiding
+Sources are `gnome/themes/template.css` (shell) and `gnome/themes/gtk-template.css` (Files),
+filled from the palettes in `gnome/themes/build.py`. After editing, run
+`python3 gnome/themes/build.py && hud-theme reload`. The shell CSS `@import`s Yaru's dark
+theme and overrides it; Yaru marks several panel rules `!important`, so ours are too.
 
-Don't install *Hide Top Bar* for this. With the panel at the bottom it misbehaves and throws
-JS errors into the shell log. GNOME's native fullscreen behaviour already hides the panel.
+The Files styles are scoped to `window.view` (Nautilus' main window carries that class),
+so other GNOME apps keep their normal colours. `hud-theme` links the chosen file to
+`~/.config/gtk-4.0/gtk.css`; reopen Files to pick it up.
+
+### Why not Just Perfection / Hide Top Bar / Vitals / Clipboard Indicator
+
+Just Perfection's profile presets silently rewrote its `panel` key to `false`, hiding the
+bar after ordinary logouts. *Hide Top Bar* misbehaves with a bottom panel and throws JS
+errors into the shell log. Vitals and Clipboard Indicator were replaced by Mission
+Control's status strip and clipboard timeline.
 
 ### Open Bar
 

@@ -108,3 +108,8 @@ keybind = shift+end=scroll_to_bottom
 keybind = ctrl+shift+r=reload_config
 keybind = ctrl+shift+backspace=undo
 keybind = f11=toggle_fullscreen
+
+# ---------- HUD theme ----------
+# Per-theme colours (teal / soft / amber). `hud-theme` points this link at the
+# current theme's file and reloads Ghostty. The `?` makes it optional.
+config-file = ?hud-theme.conf
