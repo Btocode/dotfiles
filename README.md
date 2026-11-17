@@ -47,6 +47,8 @@ What stays manual, by design:
 - **Git identity** lives outside the repo in `~/.gitconfig.local` (the printed checklist has the commands).
 - **Wallpapers** aren't vendored (licensing). Put yours in `~/Pictures/Wallpapers` and map one
   per theme in `gnome/themes/build.py` (`WALLPAPER`), then `python3 gnome/themes/build.py && hud-theme reload`.
+- **Login screen theme**: `hud-login-theme install` (sudo) puts the current HUD theme on the
+  GDM greeter; `hud-login-theme reset` goes back to Ubuntu's.
 - **Chrome theme**: `chrome://extensions` → Developer mode → *Load unpacked* →
   `~/.local/share/hud-theme/chrome`.
 - **IdeaPad keyboard-after-suspend fix** is a kernel-specific DKMS build; read

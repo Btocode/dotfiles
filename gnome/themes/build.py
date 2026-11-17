@@ -61,7 +61,7 @@ PALETTES = {
         divider='1px solid rgba(148, 226, 213, 0.14)',
         btn_radius='0', btn_pad='0 12px', hover=STRIP,
         label='#4f6f72', warn='#fab387', crit='#f38ba8',
-        menu_bg='rgba(11, 15, 23, 0.97)', banner_bg='#0e131d', tile_radius='4px', overview_bg='#05080d', menu_border='rgba(148, 226, 213, 0.22)',
+        menu_bg='rgba(11, 15, 23, 0.97)', banner_bg='#0e131d', lock_top='#0c1522', lock_bottom='#03050a', sys_font='"JetBrains Mono", monospace', tile_radius='4px', overview_bg='#05080d', menu_border='rgba(148, 226, 213, 0.22)',
         menu_top='2px solid #94e2d5', menu_radius='2px', item_radius='0',
         menu_glow='0 0 18px rgba(148, 226, 213, 0.10)',
         sel_bg='rgba(148, 226, 213, 0.12)', sel_fg='#94e2d5', sel_edge='#94e2d5',
@@ -78,7 +78,7 @@ PALETTES = {
         divider='0 solid transparent',
         btn_radius='6px', btn_pad='0 10px', hover=SOFT,
         label='rgba(230, 232, 242, 0.45)', warn='#f9e2af', crit='#f38ba8',
-        menu_bg='rgba(17, 17, 27, 0.93)', banner_bg='rgba(24, 24, 37, 0.98)', tile_radius='18px', overview_bg='#0c0c14', menu_border='rgba(255, 255, 255, 0.07)',
+        menu_bg='rgba(17, 17, 27, 0.93)', banner_bg='rgba(24, 24, 37, 0.98)', lock_top='#1e1e2e', lock_bottom='#0e0e17', sys_font='"Ubuntu Sans", sans-serif', tile_radius='18px', overview_bg='#0c0c14', menu_border='rgba(255, 255, 255, 0.07)',
         menu_top='1px solid rgba(255, 255, 255, 0.07)', menu_radius='12px', item_radius='6px',
         menu_glow='0 10px 30px rgba(0, 0, 0, 0.45)',
         sel_bg='rgba(255, 255, 255, 0.08)', sel_fg='#ffffff', sel_edge='transparent',
@@ -95,7 +95,7 @@ PALETTES = {
         divider='1px solid #2a2111',
         btn_radius='0', btn_pad='0 12px', hover=STRIP,
         label='#6e5420', warn='#ffd166', crit='#ff5d5d',
-        menu_bg='rgba(11, 10, 8, 0.97)', banner_bg='#100d09', tile_radius='0', overview_bg='#060504', menu_border='#2a2111',
+        menu_bg='rgba(11, 10, 8, 0.97)', banner_bg='#100d09', lock_top='#140f07', lock_bottom='#040302', sys_font='"JetBrains Mono", monospace', tile_radius='0', overview_bg='#060504', menu_border='#2a2111',
         menu_top='2px solid #f5a524', menu_radius='0', item_radius='0',
         menu_glow='0 0 18px rgba(245, 165, 36, 0.08)',
         sel_bg='rgba(245, 165, 36, 0.12)', sel_fg='#ffb547', sel_edge='#f5a524',
@@ -231,6 +231,7 @@ def fill(text, values):
 def main():
     shell_t = (HERE / 'template.css').read_text()
     gtk_t = (HERE / 'gtk-template.css').read_text()
+    gdm_t = (HERE / 'gdm-template.css').read_text()
     for name, pal in PALETTES.items():
         values = dict(pal)
         values['hover'] = pal['hover'].format(**pal)
@@ -247,6 +248,8 @@ def main():
         (tdir / 'chrome').mkdir(exist_ok=True)
         (tdir / 'chrome' / 'manifest.json').write_text(chrome_manifest(name, CHROME[name]))
         (tdir / 'wallpaper').write_text(WALLPAPER[name] + '\n')
+        (tdir / 'gdm').mkdir(exist_ok=True)
+        (tdir / 'gdm' / 'login.css').write_text(fill(gdm_t, values))
         for p in (out, gout, tdir / 'ghostty.conf', tdir / 'chrome' / 'manifest.json'):
             print(f'wrote {p.relative_to(HERE.parent.parent)}')
 

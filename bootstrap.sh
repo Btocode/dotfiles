@@ -82,6 +82,8 @@ step_apt() {
     gir1.2-nm-1.0 gir1.2-gnomebluetooth-3.0
     # Ctrl+Shift+Esc task manager
     resources
+    # compiles the login-screen theme (bin/hud-login-theme)
+    libglib2.0-dev-bin
     # clipboard CLI, emoji font, fontconfig tools
     wl-clipboard fonts-noto-color-emoji fontconfig
     # handy for dconf inspection

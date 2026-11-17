@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+# hud-login-theme — put a HUD theme on the GDM login screen, or take it off.
+#
+#   hud-login-theme                  show which login theme is active
+#   hud-login-theme install [theme]  build + install (asks for sudo); theme
+#                                    defaults to the current hud-theme
+#   hud-login-theme reset            back to Ubuntu's Yaru login screen (sudo)
+#   hud-login-theme build <theme> <out.gresource>   build only, no sudo
+#
+# How it works: Ubuntu's greeter loads gdm.css from the file selected by the
+# gdm-theme.gresource alternative (Yaru by default). This copies Yaru's theme
+# resource, appends gnome/themes/HUD-<theme>/gdm/login.css to its gdm.css,
+# compiles it, installs it to /usr/local/share/gnome-shell/ and selects it as
+# that alternative. Yaru stays installed; `reset` selects it again.
+# Takes effect the next time the login screen starts (log out or reboot).
+set -euo pipefail
+
+DOTS="${DOTS:-$HOME/dotfiles}"
+THEMES="$DOTS/gnome/themes"
+YARU="${YARU_GRESOURCE:-/usr/share/gnome-shell/theme/Yaru/gnome-shell-theme.gresource}"
+ALT=gdm-theme.gresource
+LINK=/usr/share/gnome-shell/gdm-theme.gresource
+DEST_DIR=/usr/local/share/gnome-shell
+PREFIX=/org/gnome/shell/theme
+
+dir_for() {
+  case "$1" in
+    gridrunner|grid) echo HUD-GridRunner ;;
+    ghost)           echo HUD-Ghost ;;
+    cockpit)         echo HUD-Cockpit ;;
+    *) echo "unknown theme: $1 (gridrunner|ghost|cockpit)" >&2; return 1 ;;
+  esac
+}
+
+build() { # build <theme> <out>
+  local dir css tmp
+  dir=$(dir_for "$1")
+  css="$THEMES/$dir/gdm/login.css"
+  [[ -f $css ]] || { echo "missing $css — run: python3 $THEMES/build.py" >&2; exit 1; }
+  command -v glib-compile-resources >/dev/null ||
+    { echo "needs glib-compile-resources: sudo apt install libglib2.0-dev-bin" >&2; exit 1; }
+  [[ -f $YARU ]] || { echo "Yaru theme resource not found at $YARU" >&2; exit 1; }
+
+  tmp=$(mktemp -d); trap 'rm -rf "$tmp"' RETURN
+  local xml="$tmp/theme.gresource.xml"
+  {
+    echo '<?xml version="1.0" encoding="UTF-8"?>'
+    echo "<gresources><gresource prefix=\"$PREFIX\">"
+  } > "$xml"
+  while read -r path; do
+    local rel="${path#"$PREFIX"/}"
+    mkdir -p "$tmp/src/$(dirname "$rel")"
+    gresource extract "$YARU" "$path" > "$tmp/src/$rel"
+    echo "  <file>$rel</file>" >> "$xml"
+  done < <(gresource list "$YARU")
+  echo '</gresource></gresources>' >> "$xml"
+
+  [[ -f $tmp/src/gdm.css ]] || { echo "Yaru resource has no gdm.css; refusing to build" >&2; exit 1; }
+  cat "$css" >> "$tmp/src/gdm.css"
+  glib-compile-resources --sourcedir "$tmp/src" --target "$2" "$xml"
+  echo "built $2 ($(du -h "$2" | cut -f1)) from $dir"
+}
+
+status() {
+  local cur
+  cur=$(update-alternatives --query "$ALT" 2>/dev/null | sed -n 's/^Value: //p')
+  echo "login screen theme: ${cur:-unknown}"
+  case "$cur" in
+    "$DEST_DIR"/hud-gdm-*) echo "  (HUD; revert with: hud-login-theme reset)" ;;
+  esac
+}
+
+case "${1:-}" in
+  "") status ;;
+  build)
+    [[ $# -eq 3 ]] || { echo "usage: hud-login-theme build <theme> <out.gresource>" >&2; exit 2; }
+    build "$2" "$3" ;;
+  install)
+    theme="${2:-$(cat "$HOME/.config/hud-theme/current" 2>/dev/null || echo gridrunner)}"
+    dir=$(dir_for "$theme")
+    out=$(mktemp --suffix=.gresource)
+    build "$theme" "$out"
+    target="$DEST_DIR/hud-gdm-${dir#HUD-}.gresource"
+    echo "installing to $target and selecting it (sudo)"
+    sudo install -D -m644 "$out" "$target"
+    rm -f "$out"
+    sudo update-alternatives --install "$LINK" "$ALT" "$target" 5
+    sudo update-alternatives --set "$ALT" "$target"
+    status
+    echo "Takes effect at the next login screen (log out, or reboot)."
+    ;;
+  reset)
+    sudo update-alternatives --set "$ALT" "$YARU"
+    status
+    ;;
+  -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) echo "unknown command: $1 (try --help)" >&2; exit 2 ;;
+esac

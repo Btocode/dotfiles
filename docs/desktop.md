@@ -96,6 +96,12 @@ Each theme also carries:
   Load that folder once via chrome://extensions → Developer mode → *Load unpacked*; after a
   switch, Chrome picks the new colours up on restart (or the extension's reload arrow).
 - **Lock screen**: themed clock, user name and password field.
+- **Login screen** (GDM greeter), opt-in because it needs root: `hud-login-theme install [theme]`
+  copies Yaru's theme resource, appends `HUD-*/gdm/login.css` to its `gdm.css`, and selects
+  the result as the `gdm-theme.gresource` alternative; `hud-login-theme reset` selects Yaru
+  again. The greeter runs as the gdm user, so it only sees system fonts (JetBrains Mono,
+  Ubuntu Sans), not `~/.local/share/fonts`. Preview without installing:
+  `GNOME_SHELL_DATADIR=<dir with the new gdm-theme.gresource> gnome-shell --headless --mode=gdm …`.
 
 Switch any time, live, no logout — from the command palette (type "theme") or:
 
