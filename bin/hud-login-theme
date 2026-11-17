@@ -4,7 +4,8 @@
 #   hud-login-theme                  show which login theme is active
 #   hud-login-theme install [theme]  build + install (asks for sudo); theme
 #                                    defaults to the current hud-theme
-#   hud-login-theme reset            back to Ubuntu's Yaru login screen (sudo)
+#   hud-login-theme reset            back to Ubuntu's Yaru login screen and logo (sudo)
+#   hud-login-theme logo off|on      hide / restore the Ubuntu logo under the login box
 #   hud-login-theme build <theme> <out.gresource>   build only, no sudo
 #
 # How it works: Ubuntu's greeter loads gdm.css from the file selected by the
@@ -12,6 +13,9 @@
 # resource, appends gnome/themes/HUD-<theme>/gdm/login.css to its gdm.css,
 # compiles it, installs it to /usr/local/share/gnome-shell/ and selects it as
 # that alternative. Yaru stays installed; `reset` selects it again.
+# The logo is the [org/gnome/login-screen] logo key in
+# /etc/gdm3/greeter.dconf-defaults; `logo off` sets it to '' there (keeping a
+# marked backup line) and `logo on` removes that again.
 # Takes effect the next time the login screen starts (log out or reboot).
 set -euo pipefail
 
@@ -61,10 +65,32 @@ build() { # build <theme> <out>
   echo "built $2 ($(du -h "$2" | cut -f1)) from $dir"
 }
 
+GREETER=/etc/gdm3/greeter.dconf-defaults
+MARK='# hud-login-theme: logo hidden'
+
+logo() { # logo off|on
+  [[ -f $GREETER ]] || { echo "no $GREETER (not GDM on Ubuntu?)" >&2; return 1; }
+  case "$1" in
+    off)
+      if grep -qF "$MARK" "$GREETER"; then echo "logo already hidden"; return; fi
+      # put an explicit empty logo right after the [org/gnome/login-screen] header
+      sudo sed -i "/^\[org\/gnome\/login-screen\]/a $MARK\nlogo=''" "$GREETER"
+      echo "logo hidden" ;;
+    on)
+      sudo sed -i "/^$MARK\$/{N;d}" "$GREETER"
+      echo "logo restored" ;;
+    *) echo "usage: hud-login-theme logo off|on" >&2; return 2 ;;
+  esac
+  # recompile the greeter's settings now instead of at the next gdm start
+  [[ -x /usr/share/gdm/generate-config ]] && sudo /usr/share/gdm/generate-config
+  return 0
+}
+
 status() {
   local cur
   cur=$(update-alternatives --query "$ALT" 2>/dev/null | sed -n 's/^Value: //p')
   echo "login screen theme: ${cur:-unknown}"
+  if grep -qF "$MARK" "$GREETER" 2>/dev/null; then echo "ubuntu logo: hidden"; else echo "ubuntu logo: shown"; fi
   case "$cur" in
     "$DEST_DIR"/hud-gdm-*) echo "  (HUD; revert with: hud-login-theme reset)" ;;
   esac
@@ -86,13 +112,16 @@ case "${1:-}" in
     rm -f "$out"
     sudo update-alternatives --install "$LINK" "$ALT" "$target" 5
     sudo update-alternatives --set "$ALT" "$target"
+    logo off
     status
     echo "Takes effect at the next login screen (log out, or reboot)."
     ;;
   reset)
     sudo update-alternatives --set "$ALT" "$YARU"
+    logo on
     status
     ;;
-  -h|--help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' ;;
+  logo) logo "${2:-}" ;;
+  -h|--help) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//' ;;
   *) echo "unknown command: $1 (try --help)" >&2; exit 2 ;;
 esac
