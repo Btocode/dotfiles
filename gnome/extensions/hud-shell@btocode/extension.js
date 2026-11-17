@@ -2,6 +2,8 @@
 // Just Perfection). No preferences: edit FEATURES below and re-login.
 //
 //   hideDash           no dash in the overview
+//   hideOverviewSearch no search box at the top of the overview (search lives
+//                      in the Super+A palette); typing in the overview still searches
 //   hideQsToggles      no Airplane Mode / Dark Style tiles in Quick Settings
 //   startOnDesktop     log in to the desktop, not the overview
 //   focusOnAttention   a window asking for attention is focused directly
@@ -28,6 +30,7 @@ import {enableLauncher} from './launcher.js';
 
 const FEATURES = {
     hideDash: true,
+    hideOverviewSearch: true,
     hideQsToggles: true,
     startOnDesktop: true,
     focusOnAttention: true,
@@ -59,6 +62,7 @@ export default class HudShellExtension extends Extension {
         this._undo = [];
         const f = FEATURES;
         if (f.hideDash) this._hideDash();
+        if (f.hideOverviewSearch) this._hideOverviewSearch();
         if (f.hideQsToggles) this._hideQsToggles();
         if (f.startOnDesktop) this._startOnDesktop();
         if (f.focusOnAttention) this._focusOnAttention();
@@ -102,6 +106,24 @@ export default class HudShellExtension extends Extension {
             dash.show();
             dash.height = -1;
             dash.setMaxSize(-1, -1);
+        });
+    }
+
+    // ── overview search box ────────────────────────────────────────────────
+
+    _hideOverviewSearch() {
+        // the overview lays out from the search bin's preferred height, so a
+        // plain hide() would leave an empty gap: collapse it to 0 as well
+        const bin = Main.overview.searchEntry?.get_parent();
+        if (!bin)
+            return;
+        bin.opacity = 0;
+        bin.height = 0;
+        bin.reactive = false;
+        this._undo.push(() => {
+            bin.height = -1;
+            bin.opacity = 255;
+            bin.reactive = true;
         });
     }
 
