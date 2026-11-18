@@ -9,6 +9,8 @@ in two drawers that slide in on demand.
 | Super+A | GNOME's window overview (floating windows) |
 | Super+S | **Mission Control**, slides in from the right |
 | Super+V | Mission Control, scrolled to the clipboard search |
+| Super+1…4 | Go to workspace 1–4 |
+| Super+Shift+1…4 | Move the focused window to workspace 1–4 |
 
 ## HUD Shell
 

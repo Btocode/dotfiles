@@ -39,6 +39,13 @@ grep -v '^#' "$HERE/keybindings.dconf" | dconf load /org/gnome/settings-daemon/p
 # ~/.config/xdg-terminals.list (linked by install.sh)
 gsettings set org.gnome.desktop.default-applications.terminal exec 'xdg-terminal-exec'
 gsettings set org.gnome.desktop.default-applications.terminal exec-arg '--'
+# Workspaces: Super+N goes to workspace N, Super+Shift+N moves the window there.
+# Super+N used to launch dock favourites; the dock is hidden, so it is freed up.
+for i in 1 2 3 4; do
+  gsettings set org.gnome.shell.keybindings switch-to-application-$i "[]"
+  gsettings set org.gnome.desktop.wm.keybindings switch-to-workspace-$i "['<Super>$i']"
+  gsettings set org.gnome.desktop.wm.keybindings move-to-workspace-$i "['<Super><Shift>$i']"
+done
 
 echo "==> Input"
 gsettings set org.gnome.desktop.peripherals.keyboard delay 250

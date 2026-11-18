@@ -62,6 +62,8 @@ What stays manual, by design:
 | Super+A | GNOME's window overview |
 | Super+S | **Mission Control** (right): clock + calendar with notification bell, network/Bluetooth/volume/battery readout (opens Quick Settings), media controls, clipboard timeline, running apps, tray icons |
 | Super+V | Mission Control, straight to the clipboard search |
+| Super+1…4 | Go to workspace 1–4 |
+| Super+Shift+1…4 | Move the focused window to workspace 1–4 |
 
 Three complete themes — **Grid Runner** (teal console), **Ghost** (soft mauve), **Cockpit**
 (amber instruments) — cover both drawers, menus, notifications, the overview, dialogs, the
